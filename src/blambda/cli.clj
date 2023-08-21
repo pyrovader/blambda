@@ -7,7 +7,7 @@
 
 (def specs
   {:bb-arch
-   {:cmds #{:build-runtime-layer :build-all :terraform-write-config}
+   {:cmds #{:build-deps-layer :build-runtime-layer :build-all :terraform-write-config}
     :desc "Architecture to target (use amd64 if you don't care)"
     :ref "<arch>"
     :default "amd64"

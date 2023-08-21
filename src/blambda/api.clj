@@ -21,12 +21,18 @@
 
         (let [gitlibs-dir "gitlibs"
               m2-dir "m2-repo"
+              pods-dir "pods"
               deps (->> deps-path slurp edn/read-string :deps)
               pods (->> deps-path slurp edn/read-string :pods)]
 
+          (spit (fs/file work-dir "bb.edn")
+                {:pods pods})
+          (shell {:extra-env {"BABASHKA_PODS_DIR" pods-dir
+                              "BABASHKA_PODS_OS_ARCH" (:bb-arch opts)}
+                  :dir work-dir} "bb prepare")
+
           (spit (fs/file work-dir "deps.edn")
                 {:deps deps
-                 :pods pods
                  :mvn/local-repo (str m2-dir)})
 
           (let [classpath-file (fs/file work-dir "deps-classpath")
@@ -38,6 +44,7 @@
                            {:dir work-dir
                             :env (assoc (into {} (System/getenv))
                                         "GITLIBS" (str gitlibs-dir))}))
+                classpath (str (str/trim-newline classpath) ":" deps-base-dir "/" pods-dir "\n")
                 deps-classpath (str/replace classpath deps-base-dir "/opt")]
             (println "Classpath before transforming:" classpath)
             (println "Classpath after transforming:" deps-classpath)
@@ -48,6 +55,7 @@
             (shell {:dir work-dir}
                    "zip -r" deps-zipfile
                    (fs/file-name gitlibs-dir)
+                   (fs/file-name pods-dir)
                    (fs/file-name m2-dir)
                    (fs/file-name classpath-file))))))))
 

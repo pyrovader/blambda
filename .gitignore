@@ -7,3 +7,7 @@ target/
 .lein-failures
 .nrepl-port
 .cpcache/
+out/
+.cpcache/
+.idea/
+*.iml

@@ -18,7 +18,7 @@ if [ -e $DEPS_CLASSPATH_FILE ]; then
 fi
 
 export BABASHKA_DISABLE_SIGNAL_HANDLERS="true"
-export BABASHKA_PODS_DIR=$LAYERS_DIR/.babashka/pods
+export BABASHKA_PODS_DIR=$LAYERS_DIR/pods
 export GITLIBS=$LAYERS_DIR/gitlibs
 
 echo "Starting Babashka:"

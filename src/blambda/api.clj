@@ -21,10 +21,12 @@
 
         (let [gitlibs-dir "gitlibs"
               m2-dir "m2-repo"
-              deps (->> deps-path slurp edn/read-string :deps)]
+              deps (->> deps-path slurp edn/read-string :deps)
+              pods (->> deps-path slurp edn/read-string :pods)]
 
           (spit (fs/file work-dir "deps.edn")
                 {:deps deps
+                 :pods pods
                  :mvn/local-repo (str m2-dir)})
 
           (let [classpath-file (fs/file work-dir "deps-classpath")

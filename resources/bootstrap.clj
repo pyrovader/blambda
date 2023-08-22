@@ -2,7 +2,7 @@
 ;;
 ;;  The bootstrap shell script will run this
 
-(require '[babashka.http-client :as http]
+(require '[org.httpkit.client :as http]
          '[clojure.string :as str]
          '[cheshire.core :as cheshire])
 
@@ -13,8 +13,8 @@
 
 (defn throwable->error-body [t]
   {:errorMessage (.getMessage t)
-   :errorType (-> t .getClass .getName)
-   :stackTrace (mapv str (.getStackTrace t))})
+   :errorType    (-> t .getClass .getName)
+   :stackTrace   (mapv str (.getStackTrace t))})
 
 ;; load handler
 (def handler
@@ -27,13 +27,13 @@
                  "\nthrow: " t)
         (http/post (str runtime-api-url "init/error")
                    {:body (cheshire/encode
-                           (throwable->error-body t))})
+                            (throwable->error-body t))})
         nil))))
 
 (when-not handler
   (http/post (str runtime-api-url "init/error")
              {:headers {"Lambda-Runtime-Function-Error-Type" "Runtime.NoSuchHandler"}
-              :body (cheshire/encode {"error" (str handler-name " didn't resolve.")})}))
+              :body    (cheshire/encode {"error" (str handler-name " didn't resolve.")})}))
 
 ;; API says not to use timeout when getting next invocation, so make it a long one
 (def timeout-ms (* 1000 60 60 24))
@@ -42,20 +42,21 @@
   "Get the next invocation, returns payload and fn to respond."
   []
   (let [{:keys [headers body]}
-        (http/get (str runtime-api-url "invocation/next")
-                  {:timeout timeout-ms})
+        @(http/get (str runtime-api-url "invocation/next")
+                   {:timeout timeout-ms
+                    :as      :text})
         id (:lambda-runtime-aws-request-id headers)]
-    {:event (cheshire/decode body keyword)
+    {:event   (cheshire/decode body keyword)
      :context headers
      :send-response!
      (fn [response]
-       (http/post (str runtime-api-url "invocation/" id "/response")
-                  {:body (cheshire/encode response)}))
+       @(http/post (str runtime-api-url "invocation/" id "/response")
+                   {:body (cheshire/encode response)}))
      :send-error!
      (fn [thrown]
-       (http/post (str runtime-api-url "invocation/" id "/error")
-                  {:body (cheshire/encode
-                          (throwable->error-body thrown))}))}))
+       @(http/post (str runtime-api-url "invocation/" id "/error")
+                   {:body (cheshire/encode
+                            (throwable->error-body thrown))}))}))
 
 (when handler
   (println "Starting babashka lambda event loop")

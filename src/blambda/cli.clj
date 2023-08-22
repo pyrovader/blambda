@@ -30,6 +30,12 @@
     :ref "<path>"
     :default "src/bb.edn"}
 
+   :pods-os
+   {:cmds #{:build-deps-layer :build-all}
+    :desc "The OS of the system which will be using the pods"
+    :ref "<os>"
+    :default "Linux"}
+
    :extra-tf-config
    {:cmds #{:terraform-write-config}
     :desc "Filenames of additional Terraform files to include"

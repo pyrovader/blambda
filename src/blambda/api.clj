@@ -28,7 +28,8 @@
           (spit (fs/file work-dir "bb.edn")
                 {:pods pods})
           (shell {:extra-env {"BABASHKA_PODS_DIR" pods-dir
-                              "BABASHKA_PODS_OS_ARCH" (:bb-arch opts)}
+                              "BABASHKA_PODS_OS_ARCH" (:bb-arch opts)
+                              "BABASHKA_PODS_OS_NAME" (:pods-os opts)}
                   :dir work-dir} "bb prepare")
 
           (spit (fs/file work-dir "deps.edn")

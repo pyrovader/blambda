@@ -45,7 +45,13 @@
                            {:dir work-dir
                             :env (assoc (into {} (System/getenv))
                                    "GITLIBS" (str gitlibs-dir))}))
-                deps-classpath (str/replace classpath deps-base-dir "/opt")]
+                deps-classpath (str/replace classpath deps-base-dir "/opt")
+                deps-classpath (if (str/includes? (System/getProperty "os.name") "Windows")
+                                 (-> deps-classpath
+                                     (str/replace "\\\\" "/")
+                                     (str/replace "\\" "/")
+                                     (str/replace ";" ":"))
+                                 deps-classpath)]
             (println "Classpath before transforming:" classpath)
             (println "Classpath after transforming:" deps-classpath)
             (spit classpath-file deps-classpath)

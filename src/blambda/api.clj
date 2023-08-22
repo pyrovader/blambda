@@ -44,7 +44,6 @@
                            {:dir work-dir
                             :env (assoc (into {} (System/getenv))
                                         "GITLIBS" (str gitlibs-dir))}))
-                classpath (str (str/trim-newline classpath) ":" deps-base-dir "/" pods-dir "\n")
                 deps-classpath (str/replace classpath deps-base-dir "/opt")]
             (println "Classpath before transforming:" classpath)
             (println "Classpath after transforming:" deps-classpath)

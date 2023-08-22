@@ -116,7 +116,7 @@
    {:cmds #{:build-lambda :build-all}
     :desc "List of files to include in lambda artifact; relative to source-dir"
     :ref "file1 file2 ..."
-    :require true
+    :require false
     :coerce []}
 
    :target-dir

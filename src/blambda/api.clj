@@ -27,13 +27,13 @@
 
           (spit (fs/file work-dir "bb.edn")
                 {:pods pods})
-          (shell {:extra-env {"BABASHKA_PODS_DIR" pods-dir
+          (shell {:extra-env {"BABASHKA_PODS_DIR"     pods-dir
                               "BABASHKA_PODS_OS_ARCH" (:bb-arch opts)
                               "BABASHKA_PODS_OS_NAME" (:pods-os opts)}
-                  :dir work-dir} "bb prepare")
+                  :dir       work-dir} "bb prepare")
 
           (spit (fs/file work-dir "deps.edn")
-                {:deps deps
+                {:deps           deps
                  :mvn/local-repo (str m2-dir)})
 
           (let [classpath-file (fs/file work-dir "deps-classpath")
@@ -44,7 +44,7 @@
                   (clojure ["-Spath"]
                            {:dir work-dir
                             :env (assoc (into {} (System/getenv))
-                                        "GITLIBS" (str gitlibs-dir))}))
+                                   "GITLIBS" (str gitlibs-dir))}))
                 deps-classpath (str/replace classpath deps-base-dir "/opt")]
             (println "Classpath before transforming:" classpath)
             (println "Classpath after transforming:" deps-classpath)
@@ -62,7 +62,7 @@
 (defn build-runtime-layer
   "Builds custom runtime layer"
   [{:keys [bb-arch bb-version target-dir work-dir]
-    :as opts}]
+    :as   opts}]
   (let [runtime-zipfile (lib/runtime-zipfile opts)
         bb-filename (lib/bb-filename bb-version bb-arch)
         bb-url (lib/bb-url bb-version bb-filename)
@@ -78,8 +78,8 @@
         (when-not (fs/exists? bb-tarball)
           (println "Downloading" bb-url)
           (io/copy
-           (:body (http/get bb-url {:as :stream}))
-           (io/file bb-tarball)))
+            (:body (http/get bb-url {:as :stream}))
+            (io/file bb-tarball)))
 
         (println "Decompressing" bb-tarball "to" work-dir)
         (shell "tar -C" work-dir "-xzf" bb-tarball)
@@ -94,22 +94,34 @@
 
 (defn build-lambda [{:keys [lambda-name source-dir source-files
                             target-dir work-dir] :as opts}]
-  (when (empty? source-files)
+  (when (and (empty? source-files)
+             (empty? (fs/list-dir source-dir)))
     (throw (ex-info "Missing source-files"
                     {:type :blambda/error})))
-  (let [lambda-zipfile (lib/zipfile opts lambda-name)]
+  (let [lambda-zipfile (lib/zipfile opts lambda-name)
+        lambda-workdir (str work-dir "/lambda-files")]
     (if (empty? (fs/modified-since lambda-zipfile
-                                   (->> source-files
-                                        (map (partial fs/file source-dir))
-                                        (cons "bb.edn"))))
+                                   (if source-files
+                                     (->> source-files
+                                          (map (partial fs/file source-dir))
+                                          (cons "bb.edn"))
+                                     source-dir)))
       (println "\nNot rebuilding lambda artifact; no changes to source files since last built:"
                source-files)
       (do
         (println "\nBuilding lambda artifact:" (str lambda-zipfile))
-        (lib/copy-files! opts source-files)
+        (fs/copy-tree source-dir lambda-workdir {:replace-existing true})
         (println "Compressing lambda:" (str lambda-zipfile))
-        (apply shell {:dir work-dir}
-               "zip" lambda-zipfile source-files)))))
+        (if source-files
+          (apply shell {:dir lambda-workdir}
+                 "zip" lambda-zipfile source-files)
+          (let [file-paths (mapv #(fs/relativize lambda-workdir %)
+                                 (filter #(and (not (fs/directory? %))
+                                               (not (str/ends-with? % "bb.edn")))
+                                         (fs/glob lambda-workdir "**"
+                                                  {:recursive true})))]
+            (apply shell {:dir lambda-workdir}
+                   "zip" lambda-zipfile file-paths)))))))
 
 (defn build-all [{:keys [deps-layer-name] :as opts}]
   (build-runtime-layer opts)
